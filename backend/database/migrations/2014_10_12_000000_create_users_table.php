@@ -15,8 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
+            // $table->timestamp('email_verified_at')->nullable(); // Hapus baris ini
             $table->string('password');
+            $table->string('nik')->unique(); // Tambahkan NIK, unik. Urutan akan ditentukan oleh posisi di sini.
+            $table->string('phone_number')->nullable(); // Tetap di sini
             $table->rememberToken();
             $table->timestamps();
         });

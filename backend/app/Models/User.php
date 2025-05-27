@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+// use Illuminate\Contracts\Auth\MustVerifyEmail; // Baris ini tidak perlu jika tidak menggunakan verifikasi email
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
+use Laravel\Sanctum\HasApiTokens; // Pertahankan jika Anda berencana menggunakan Laravel Sanctum untuk API authentication
 
 class User extends Authenticatable
 {
@@ -21,6 +21,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'nik',          // Kolom NIK
+        'phone_number', // Kolom Nomor Telepon
     ];
 
     /**
@@ -39,7 +41,11 @@ class User extends Authenticatable
      * @var array<string, string>
      */
     protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
+        // 'email_verified_at' => 'datetime', // Baris ini dihapus karena kolomnya sudah tidak ada di tabel
+        'password' => 'hashed', // Penting: Otomatis hash password saat disimpan
     ];
+
+    // Jika Anda berencana menggunakan fitur verifikasi email di masa depan,
+    // Anda bisa mengimplementasikan MustVerifyEmail interface dan menambahkan kolomnya kembali.
+    // Namun untuk saat ini, kita hapus.
 }
