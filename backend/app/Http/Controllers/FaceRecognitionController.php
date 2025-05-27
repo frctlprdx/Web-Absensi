@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http; // Penting untuk komunikasi HTTP
 use App\Models\User; // Asumsi kamu akan menyimpan data user di tabel 'users'
 use Illuminate\Support\Facades\Log; // Untuk logging
+use Illuminate\Validation\ValidationException;
 
 class FaceRecognitionController extends Controller
 {
@@ -17,13 +18,23 @@ class FaceRecognitionController extends Controller
      */
     public function registerFace(Request $request)
     {
-        $request->validate([
-            'image' => 'required|string',
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email|max:255', // Validasi email juga
-            'nik' => 'required|string|unique:users,nik|max:20', // Ubah dari 'nim' ke 'nik'
-            'phone_number' => 'nullable|string|max:15', // Tambahkan validasi phone_number
-        ]);
+        // dd($request->all()); // Tambahkan baris ini
+        try {
+            $validatedData = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users',
+                'nik' => 'required|string|digits:16|unique:users,nik',
+                'phone_number' => 'required|string|regex:/^08[0-9]{8,11}$/',
+                'image' => 'required|string',
+            ]);
+        } catch (ValidationException $e) {
+            // Jika validasi gagal, kembalikan response error JSON
+            return response()->json([
+                'message' => 'Validation Failed',
+                'errors' => $e->errors()
+            ], 422);
+        }
+
 
         try {
             $response = Http::timeout(60)->post(env('PYTHON_MICROSERVICE_URL') . '/register_face', [
