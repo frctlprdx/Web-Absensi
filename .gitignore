@@ -1,0 +1,42 @@
+# Ignore everything in the root directory itself that is not explicitly needed
+
+# Laravel (Backend) specific ignores
+backend/.env
+backend/vendor/
+backend/node_modules/
+backend/storage/*.key
+backend/public/hot
+backend/public/storage
+backend/*.log
+backend/.vscode/
+backend/.phpunit.result.cache
+backend/bootstrap/cache/*.php
+
+# React (Frontend) specific ignores
+frontend/node_modules/
+frontend/build/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/.env.staging.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.cache/
+frontend/coverage/
+
+# Python Microservice specific ignores
+microservice/venv/
+microservice/__pycache__/
+microservice/*.pyc
+microservice/.env # Jika kamu pakai .env di microservice
+microservice/data/ # Jika ada folder data model/embeddings yang besar
+
+# IDE specific ignores (VS Code, etc.)
+.idea/
+.vscode/
+
+# OS generated files
+.DS_Store
+Thumbs.db
