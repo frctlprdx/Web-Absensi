@@ -122,7 +122,7 @@ def find_matching_face(new_embedding):
 
 # --- Endpoint API ---
 
-@app.route('/register_face', methods=['POST'])
+@app.route('/recognize-face', methods=['POST']) # Perhatikan perubahan dari _ ke -
 def register_face():
     if not request.is_json:
         return jsonify({"message": "Request must be JSON"}), 400
@@ -203,18 +203,20 @@ def recognize_face():
 
     if recognized_nik:
         return jsonify({
+            "status": "success", # <<< TAMBAHKAN INI
             "message": f"Face recognized as {recognized_name} (NIK: {recognized_nik})",
             "nik": recognized_nik,
             "name": recognized_name,
-            "confidence": round(confidence * 100, 2) # Ubah ke persentase
+            "confidence": round(confidence * 100, 2)
         }), 200
     else:
         return jsonify({
+            "status": "failure", # <<< TAMBAHKAN INI
             "message": "Face not recognized or no strong match found.",
             "nik": "UNKNOWN",
             "name": "UNKNOWN",
             "confidence": 0.0
-        }), 404 # 404 Not Found
+        }), 404
 
 if __name__ == '__main__':
     with app.app_context():

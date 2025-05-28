@@ -76,51 +76,87 @@ class FaceRecognitionController extends Controller
 
     public function recognizeFace(Request $request)
     {
-        $request->validate([
-            'image' => 'required|string',
-        ]);
+        try {
+            // 1. Validasi Input
+            $validatedData = $request->validate([
+                'image' => 'required|string', // Base64 string dari gambar wajah untuk recognition
+            ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation Failed',
+                'errors' => $e->errors()
+            ], 422);
+        }
+
+        $imageData = $validatedData['image'];
+
+        // Hapus prefix data:image/...;base64, jika ada, seperti yang Anda lakukan untuk register
+        if (str_starts_with($imageData, 'data:')) {
+            $imageData = preg_replace('/^data:image\/(.*?);base64,/', '', $imageData);
+        }
 
         try {
-            $response = Http::timeout(60)->post(env('PYTHON_MICROSERVICE_URL') . '/recognize_face', [
-                'image' => $request->image,
+            // 2. Kirim Gambar ke Flask App untuk Recognition
+            $response = Http::post(env('PYTHON_MICROSERVICE_URL') . '/recognize_face', [
+                'image' => $imageData,
             ]);
 
+            // 3. Tangani Response dari Flask
             if ($response->successful()) {
                 $pythonResponse = $response->json();
-                $recognizedNIK = $pythonResponse['nik'] ?? null; // Asumsi Python mengembalikan 'nik'
-                $confidence = $pythonResponse['confidence'] ?? null;
 
-                if ($recognizedNIK) {
-                    $user = User::where('nik', $recognizedNIK)->first(); // Ubah dari 'nim' ke 'nik'
+                if (isset($pythonResponse['status']) && $pythonResponse['status'] == 'success') {
+                    $recognizedNik = $pythonResponse['nik'];
+
+                    // Cari pengguna di database Laravel berdasarkan NIK
+                    $user = User::where('nik', $recognizedNik)->first();
 
                     if ($user) {
-                        // ... (logika absensi di sini)
+                        // Wajah cocok dan pengguna ditemukan di DB Laravel
+                        // Di sini Anda bisa menambahkan logika absensi:
+                        // Misalnya, mencatat waktu absensi di tabel absensi
+                        // atau update status kehadiran pengguna.
+
                         return response()->json([
-                            'message' => 'Wajah dikenali: ' . $user->name,
-                            'user_data' => $user,
-                            'recognition_details' => [
-                                'nik' => $recognizedNIK, // Ubah ke 'nik'
-                                'confidence' => $confidence,
+                            'message' => 'Face recognized successfully!',
+                            'user_data' => [
+                                'id' => $user->id,
+                                'name' => $user->name,
+                                'nik' => $user->nik,
+                                'email' => $user->email,
                             ],
-                            'python_response' => $pythonResponse
+                            'flask_response' => $pythonResponse
                         ], 200);
                     } else {
-                        return response()->json(['message' => 'Wajah dikenali, tetapi NIK tidak ditemukan di database.', 'nik' => $recognizedNIK], 404);
+                        // Wajah dikenali oleh Flask, tapi NIK tidak ditemukan di database Laravel
+                        return response()->json([
+                            'message' => 'Face recognized, but user NIK not found in Laravel database.',
+                            'recognized_nik_from_flask' => $recognizedNik,
+                            'flask_response' => $pythonResponse
+                        ], 404);
                     }
-                } else {
-                    return response()->json(['message' => 'Wajah tidak dikenali.'], 404);
-                }
 
+                } else {
+                    // Flask merespons dengan status 'failure' atau error
+                    return response()->json([
+                        'message' => 'Face not recognized by Flask app.',
+                        'flask_error' => $pythonResponse['message'] ?? 'Unknown Flask recognition error'
+                    ], 404); // Menggunakan 404 Not Found karena wajah tidak dikenali
+                }
             } else {
-                Log::error('Error dari Python Microservice (recognize_face): ' . $response->body());
+                // Ada masalah komunikasi dengan Flask (misalnya, Flask error 500)
                 return response()->json([
-                    'message' => 'Gagal mengenali wajah via microservice.',
-                    'python_error' => $response->json()
-                ], $response->status());
+                    'message' => 'Error communicating with Flask app for recognition.',
+                    'status_code' => $response->status(),
+                    'flask_error_response' => $response->body()
+                ], 500);
             }
         } catch (\Exception $e) {
-            Log::error('Koneksi ke Python Microservice gagal (recognize_face): ' . $e->getMessage());
-            return response()->json(['message' => 'Server error: Tidak dapat terhubung ke microservice.', 'error' => $e->getMessage()], 500);
+            // Penanganan error umum (misalnya, Flask server tidak berjalan)
+            return response()->json([
+                'message' => 'Internal server error or Flask app connection issue during recognition: ' . $e->getMessage(),
+                // 'trace' => $e->getTraceAsString() // Aktifkan ini untuk debugging lebih lanjut
+            ], 500);
         }
     }
 
